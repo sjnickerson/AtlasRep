@@ -3,3 +3,4 @@ Read("ImportMtx.g");
 Read("ImportReference.g");
 Read("ExportMtx.g");
 Read("ZEntryBound.g");
+Read("SymReps.g");
