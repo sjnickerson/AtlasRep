@@ -68,7 +68,14 @@ SymReps := function(n, directory)
 
     y := YoungRepresentation(p.parts[1], gens);
     PrintFormatted("{1} - partition {2} {3}, Tr(A)={4}, Tr(B)={5}\n", file, p.parts[1], comment, Trace(y[1]), Trace(y[2])); 
-
+    if p.splits then;
+      if Trace(y[3]) < 0 then;
+        PrintFormatted("  Tr(R)={1} < 0; replacing with -R\n", Trace(y[3]));
+        y[3] := -y[3];
+      elif Trace(y[3]) = 0 then;
+        Print("  WARNING: Tr(R)=0; not sure if this is the representation in the ATLAS\n");
+      fi;
+    fi;
     ExportMtx(Concatenation(directory, "/", file, "-A"), y[1]);
     ExportMtx(Concatenation(directory, "/", file, "-B"), y[2]);
     ExportMtx(Concatenation(directory, "/", file, "-R"), y[3]);
