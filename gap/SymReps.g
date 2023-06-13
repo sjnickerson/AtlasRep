@@ -4,14 +4,19 @@ SymReps := function(n, directory)
 
   makestdgens := function()
     local a, b, r;
-    a := (1,2,3);
-    if n mod 2 = 0 then;
-      b := PermList(Concatenation([1], [3..n], [2]));
+    if n < 5 then return fail;
+    elif n = 5 then return [(1,2)(3,4), (1,3,5), (1,2)];
+    elif n = 6 then return fail;
     else;
-      b := PermList(Concatenation([1], [2], [4..n], [3]));
+      a := (1,2,3);
+      if n mod 2 = 0 then;
+        b := PermList(Concatenation([1], [3..n], [2]));
+      else;
+        b := PermList(Concatenation([1], [2], [4..n], [3]));
+      fi;
+      r := (1,2);
+      return [a, b, r];
     fi;
-    r := (1,2);
-    return [a, b, r];
   end;
 
   partitioninfo := function(p)
