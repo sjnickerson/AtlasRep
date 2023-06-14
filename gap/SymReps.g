@@ -1,6 +1,10 @@
+# Calculate and export the representations of S_n using V2 standard
+# generators (A, B, R).
+#
+# The irreducible reps of S_n are associated with partitions of n.
 SymReps := function(n, directory)
   local partitions, p, comment, splits, partitioninfo, makestdgens, y, gens,
-    file, dim, traces, bclass, getnext, nextletter;
+    file, dim, traces, bclass, getnext, nextletter, files;
 
   makestdgens := function()
     local a, b, r;
@@ -46,7 +50,6 @@ SymReps := function(n, directory)
 
   gens := makestdgens();
 
- 
   nextletter := [];
   getnext := function(dim, num)
     local i, str;
@@ -61,6 +64,7 @@ SymReps := function(n, directory)
     return str;
   end;
 
+  files := [];
   CreateDir(directory);
   for p in partitions do;
     if not p.splits then;
@@ -82,11 +86,10 @@ SymReps := function(n, directory)
         Print("  WARNING: Tr(R)=0; not sure if this is the representation in the ATLAS\n");
       fi;
     fi;
-    PrintFormatted("  ZEntryBound(<A, B>): {1}\n", ZEntryBound(Group(y[1], y[2])).zentrybound);
-    PrintFormatted("  ZEntryBound(<A, B, R>): {1}\n", ZEntryBound(Group(y[1], y[2], y[3])).zentrybound);
     ExportMtx(Concatenation(directory, "/", file, "-A"), y[1]);
     ExportMtx(Concatenation(directory, "/", file, "-B"), y[2]);
     ExportMtx(Concatenation(directory, "/", file, "-R"), y[3]);
+    Add(files, file);
   od;
 
   for dim in Set(List(partitions, p -> p.andim)) do;
@@ -98,6 +101,5 @@ SymReps := function(n, directory)
     fi;
   od;
 
-  return gens;
+  return files;
 end;
-
