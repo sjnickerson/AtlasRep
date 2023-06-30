@@ -41,3 +41,13 @@ SpinRepresentationEven := function(n)
   xi := CliffordEven(n);
   return List([1..n-1], j -> E(4)/Sqrt(2)*(xi[j] - xi[j+1]));
 end;       
+
+SpinRepresentationEvenStandardGenerators := function(n)
+  local t, a, b, r, ans;
+  t := SpinRepresentationEven(n);
+  ans := rec();
+  ans.a := t[2]*t[1];
+  ans.b := Product(List(Reversed([2..n-1]), i -> t[i]));
+  ans.r := t[1];
+  return ans;
+end;

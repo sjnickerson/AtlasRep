@@ -8,3 +8,5 @@ Read("ZEntryBound.g");
 Read("Young.g");
 Read("SymReps.g");
 Read("RepAnalyzer.g");
+Read("Tensor.g");
+Read("ProjSymReps.g");
