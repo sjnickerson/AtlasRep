@@ -380,11 +380,16 @@ end;
 # indexed by a given partition.
 YoungRepresentation := function(partition, permlist)
     
-    local size, k, row, gen, gens, n, tableaux, i, j, m, tableausum, pos;
+    local size, k, row, gen, gens, n, tableaux, i, j, m, tableausum, pos,
+         tableauxdict;
     
     n := Sum(partition);
     size := HookLengthFormula(partition);
     tableaux := StandardTableaux(partition, 0);
+    tableauxdict := NewDictionary(tableaux[1], true);
+    for i in [1..Size(tableaux)] do;
+      AddDictionary(tableauxdict, tableaux[i], i);
+    od;
     m := Size(tableaux);
     gens := [];
     
@@ -396,7 +401,7 @@ YoungRepresentation := function(partition, permlist)
                                   [ 1 ] );
             row := List([1..m], x->0);            
             for j in [1..Size(tableausum.tableaulist)] do
-                pos := Position(tableaux, tableausum.tableaulist[j]);
+                pos := LookupDictionary(tableauxdict, tableausum.tableaulist[j]);
                 row[pos] := tableausum.coefficientlist[j];
             od;
             Add(gen, row);
