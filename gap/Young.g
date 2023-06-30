@@ -297,19 +297,22 @@ end;
 # give the same sum of polytabloids and which do not have the
 # row descent. This is achieved by acting on the tableau by a Garnir
 # permutation.
-RemoveRowDescentFromTableau := function(tableau, rowdescent)
+RemoveRowDescentFromTableau := function(tableau, rowdescent, coeffmultiplier)
     
-    local A, B, height, garnir, tableaulist, coefficientlist;
+    local A, B, height, garnir, permutedtableau, coefficientlist, tableausum, perm;
     
     height := Number(tableau, x->Size(x) >= rowdescent.j);
     
     A := List([rowdescent.i..height], x->tableau[x][rowdescent.j]);
     B := List([1..rowdescent.i], x->tableau[x][rowdescent.j + 1]);
     garnir := GarnirPermutations(A, B);
-    tableaulist := List(garnir, perm->ActionOnTableau(tableau, perm));
-    coefficientlist := List(garnir, x-> -SignPerm(x));
-    
-    return rec(tableaux := tableaulist, coeffs := coefficientlist);
+
+    tableausum := NewDictionary([], true);
+    for perm in garnir do;
+      permutedtableau := ActionOnTableau(tableau, perm);
+      AddDictionary(tableausum, permutedtableau, rec(tableau := permutedtableau, coeff := -SignPerm(perm) * coeffmultiplier));
+    od;
+    return tableausum;
     
 end;
 
@@ -318,61 +321,48 @@ end;
 # polytabloids as a given sum of (not necessarily standard) tableaux.
 # Sums of tableaux are handled as lists of tableaux and lists
 # of coefficients.
-FindStandardTableauSum := function(tableaulist, coefficientlist)
+FindStandardTableauSum := function(tableausum)
     local i, j, sortedtableau, newtableau, newcoefficient,
           newtableaulist, newcoefficientlist, tableau, coefficient,
-          rowdescent, answer, rowdescenttableaulist,
-          rowdescentcoefficientlist,
-          recursiveanswer, pos, recursivetableaulistsize, newtableaulistsize;
+          rowdescent, rowdescentsum,
+          recursiveanswer, prev, item, item2, newtableausum;
+
+    newtableausum := NewDictionary([], true);
     
-    newtableaulist := [ ];
-    newcoefficientlist := [ ];
-    
-    for i in [1..Size(tableaulist)] do
-        tableau := tableaulist[i];
-        coefficient := coefficientlist[i];
+    for item in tableausum do
+        tableau := item.tableau;
+        coefficient := item.coeff;
         sortedtableau := SortTableauColumns(tableau);
         newtableau := sortedtableau.tableau;
         newcoefficient := coefficient * SignPerm(sortedtableau.perm);
         if IsStandardTableau(newtableau) then
-            pos := Position(newtableaulist, newtableau);
-            if pos = fail then
-                Add(newtableaulist, newtableau);
-                Add(newcoefficientlist, newcoefficient);
-            else
-                newcoefficientlist[pos] := newcoefficientlist[pos] +
-                                              newcoefficient;
-            fi; 
+            prev := LookupDictionary(newtableausum, newtableau);
+            if prev <> fail then
+              newcoefficient := prev.coeff + newcoefficient;
+            fi;
+            AddDictionary(
+                 newtableausum,
+                 newtableau,
+                 rec(tableau := newtableau, coeff := newcoefficient));
         else
             rowdescent := FindRowDescent(newtableau);
-            answer := RemoveRowDescentFromTableau(newtableau, rowdescent);
-            rowdescenttableaulist := answer.tableaux;
-            rowdescentcoefficientlist := newcoefficient * answer.coeffs;
-            recursiveanswer := FindStandardTableauSum(
-                                       rowdescenttableaulist,
-                                       rowdescentcoefficientlist);
-            recursivetableaulistsize := Size(recursiveanswer.tableaulist);
-            for j in [1..recursivetableaulistsize] do
-                pos := Position(newtableaulist,
-                                recursiveanswer.tableaulist[j]);
-                
-                if pos = fail then
-                    Add(newtableaulist, recursiveanswer.tableaulist[j]);
-                    Add(newcoefficientlist, recursiveanswer.coefficientlist[j]);
-                else
-                    newcoefficientlist[pos] := newcoefficientlist[pos] +
-                                                  recursiveanswer.
-                                                  coefficientlist[j];
-                                                
+            rowdescentsum := RemoveRowDescentFromTableau(newtableau, rowdescent, newcoefficient);
+            recursiveanswer := FindStandardTableauSum(rowdescentsum);
+            for item2 in recursiveanswer do;
+                newcoefficient := item2.coeff;
+                prev := LookupDictionary(newtableausum, item2.tableau);
+                if prev <> fail then
+                    newcoefficient := prev.coeff + newcoefficient;
                 fi;
+                AddDictionary(newtableausum, 
+                              item2.tableau,
+                              rec(tableau := item2.tableau, coeff := newcoefficient));
             od;
         fi;
         
     od;
     
-    return rec(tableaulist := newtableaulist,
-               coefficientlist := newcoefficientlist);
-
+    return newtableausum;
 end;
 
 # -------------------------------------------------------------------------
@@ -381,7 +371,7 @@ end;
 YoungRepresentation := function(partition, permlist)
     
     local size, k, row, gen, gens, n, tableaux, i, j, m, tableausum, pos,
-         tableauxdict;
+         tableauxdict, tableau;
     
     n := Sum(partition);
     size := HookLengthFormula(partition);
@@ -396,13 +386,14 @@ YoungRepresentation := function(partition, permlist)
     for k in [1..Size(permlist)] do
         gen := [];
         for i in [1..m] do
-            tableausum := FindStandardTableauSum(
-                                  [ ActionOnTableau(tableaux[i], permlist[k]) ],
-                                  [ 1 ] );
+            tableausum := NewDictionary([], true);
+            tableau := ActionOnTableau(tableaux[i], permlist[k]);
+            AddDictionary(tableausum, tableau, rec(tableau := tableau, coeff := 1));
+            tableausum := FindStandardTableauSum(tableausum);
             row := List([1..m], x->0);            
-            for j in [1..Size(tableausum.tableaulist)] do
-                pos := LookupDictionary(tableauxdict, tableausum.tableaulist[j]);
-                row[pos] := tableausum.coefficientlist[j];
+            for tableau in tableausum do
+                pos := LookupDictionary(tableauxdict, tableau.tableau);
+                row[pos] := tableau.coeff;
             od;
             Add(gen, row);
         od;
