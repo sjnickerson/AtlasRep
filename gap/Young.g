@@ -323,7 +323,7 @@ FindStandardTableauSum := function(tableaulist, coefficientlist)
           newtableaulist, newcoefficientlist, tableau, coefficient,
           rowdescent, answer, rowdescenttableaulist,
           rowdescentcoefficientlist,
-          recursiveanswer, pos;
+          recursiveanswer, pos, recursivetableaulistsize, newtableaulistsize;
     
     newtableaulist := [ ];
     newcoefficientlist := [ ];
@@ -335,13 +335,12 @@ FindStandardTableauSum := function(tableaulist, coefficientlist)
         newtableau := sortedtableau.tableau;
         newcoefficient := coefficient * SignPerm(sortedtableau.perm);
         if IsStandardTableau(newtableau) then
-            pos := Filtered([1..Size(newtableaulist)],
-                           x->newtableaulist[x] = newtableau);
-            if IsEmpty(pos) then
+            pos := Position(newtableaulist, newtableau);
+            if pos = fail then
                 Add(newtableaulist, newtableau);
                 Add(newcoefficientlist, newcoefficient);
             else
-                newcoefficientlist[pos[1]] := newcoefficientlist[pos[1]] +
+                newcoefficientlist[pos] := newcoefficientlist[pos] +
                                               newcoefficient;
             fi; 
         else
@@ -352,16 +351,16 @@ FindStandardTableauSum := function(tableaulist, coefficientlist)
             recursiveanswer := FindStandardTableauSum(
                                        rowdescenttableaulist,
                                        rowdescentcoefficientlist);
-            for j in [1..Size(recursiveanswer.tableaulist)] do
-                pos := Filtered([1..Size(newtableaulist)],
-                               x->newtableaulist[x] =
-                               recursiveanswer.tableaulist[j]);
+            recursivetableaulistsize := Size(recursiveanswer.tableaulist);
+            for j in [1..recursivetableaulistsize] do
+                pos := Position(newtableaulist,
+                                recursiveanswer.tableaulist[j]);
                 
-                if IsEmpty(pos) then
+                if pos = fail then
                     Add(newtableaulist, recursiveanswer.tableaulist[j]);
                     Add(newcoefficientlist, recursiveanswer.coefficientlist[j]);
                 else
-                    newcoefficientlist[pos[1]] := newcoefficientlist[pos[1]] +
+                    newcoefficientlist[pos] := newcoefficientlist[pos] +
                                                   recursiveanswer.
                                                   coefficientlist[j];
                                                 
@@ -381,7 +380,7 @@ end;
 # indexed by a given partition.
 YoungRepresentation := function(partition, permlist)
     
-    local size, k, gens, n, tableaux, i, j, m, tableausum, pos;
+    local size, k, row, gen, gens, n, tableaux, i, j, m, tableausum, pos;
     
     n := Sum(partition);
     size := HookLengthFormula(partition);
@@ -390,17 +389,19 @@ YoungRepresentation := function(partition, permlist)
     gens := [];
     
     for k in [1..Size(permlist)] do
-        gens[k] := NullMat(m, m);
-        for i in [1..Size(tableaux)] do
+        gen := [];
+        for i in [1..m] do
             tableausum := FindStandardTableauSum(
                                   [ ActionOnTableau(tableaux[i], permlist[k]) ],
                                   [ 1 ] );
-            
+            row := List([1..m], x->0);            
             for j in [1..Size(tableausum.tableaulist)] do
                 pos := Position(tableaux, tableausum.tableaulist[j]);
-                gens[k][i][pos] := tableausum.coefficientlist[j];
+                row[pos] := tableausum.coefficientlist[j];
             od;
+            Add(gen, row);
         od;
+        Add(gens, gen);
     od;
     
     return gens;
