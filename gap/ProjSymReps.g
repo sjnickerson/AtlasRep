@@ -100,20 +100,31 @@ Dimension2SnRep := function(p)
   return Size(StandardShiftedTableaux(p)) * 2^m;
 end;
 
-NazarovMatrix := function(lambda, epsilon, k)
+NazarovMatrix := function(lambda, epsilon)
   local n, l, d, m,
-        phi, rho, h,
+        phi, rho, g, h,
         I, J, K,
         M, MM,
-        i, q,
-        A, B, C,
-        perm, tableaux, permtableau, j;
+        i, j,
+        ii, jj,
+        p, q,
+        Mval,
+        perm, tableau, tableaux, permtableau,
+        corr, correspondence, size,
+        transpositionmatrix,
+        addinnerscalarmultiple;
 
   # p438
   n := Sum(lambda);
   l := Size(lambda);
   d := (n - l) mod 2;
   m := (n - l - d) / 2;
+
+  g := function(t, k)
+    return Size(Difference(
+         [1..k+1],
+         List(t, row->row[1])));
+  end;
 
   # p439 (top): computation of h(\Lambda, k)
   h := function(t, k)
@@ -161,7 +172,7 @@ NazarovMatrix := function(lambda, epsilon, k)
 
   # p440
   phi := function(p, q)
-    return Sqrt(2*q*q+1) / ((p-q) * (p+q+1));
+    return Sqrt(2*q*(q+1)) / ((p-q) * (p+q+1));
   end;
 
   rho := function(p, q)
@@ -172,13 +183,115 @@ NazarovMatrix := function(lambda, epsilon, k)
   # decompose into subspaces depending on the action of the
   # permutation (k, k+1).
   tableaux := StandardShiftedTableaux(lambda);
-  perm := (k, k+1);
-  for i in [1..Size(tableaux)] do;
-    permtableau := ActionOnTableau(tableaux[i], perm);
-    if IsStandardShiftedTableau(permtableau) then
-      j := Position(tableaux, permtableau);
-      Print(i, " -> ", j, "\n");
+
+  correspondence := function(k)
+    local ans;
+    ans := [];
+    perm := (k, k+1);
+    for i in [1..Size(tableaux)] do;
+      permtableau := ActionOnTableau(tableaux[i], perm);
+      if IsStandardShiftedTableau(permtableau) then
+        j := Position(tableaux, permtableau);
+        ans[i] := j;
+      else
+        ans[i] := i;
+      fi;
+    od;
+    return ans;
+  end;
+
+  addinnerscalarmultiple := function(matrix, i, j, submatrix, scalar)
+    local n, ii, jj;
+    Print("Adding ", scalar, " * ", submatrix, " at (", i, ", ", j, ")\n");
+    n := Size(submatrix);
+    for ii in [1..n] do;
+      for jj in [1..n] do;
+        matrix[i+ii-1][j+jj-1] := matrix[i+ii-1][j+jj-1] + scalar * submatrix[ii][jj];
+      od;
+    od; 
+  end;
+
+
+  size := Dimension2SnRep(lambda);
+
+  transpositionmatrix := function(k)
+    local ans;
+
+    Print("*** COMPUTING TRANSPOSITION MATRIX t_", k, " ***\n");
+
+    ans := NullMat(size, size);
+
+    corr := correspondence(k);  
+    for i in [1..Size(tableaux)] do
+      j := corr[i];
+      if j < i then continue; fi;
+      tableau := tableaux[i];
+      PrintShiftedTableau(tableau);
+      p := h(tableau, k);
+      q := h(tableau, k+1);
+      Print("p = ", p, "\n");
+      Print("q = ", q, "\n");
+      if h(tableau, k) * h(tableau, k+1) <> 0 then
+        Print("A/B case\n");
+        Mval := MM[g(tableau, k)];
+        addinnerscalarmultiple(ans, (i-1)*2^m+1, (i-1)*2^m+1, Mval, phi(p,q));
+        if j <> i then
+          addinnerscalarmultiple(ans, (i-1)*2^m+1, (j-1)*2^m+1, Mval, rho(p,q));
+          addinnerscalarmultiple(ans, (j-1)*2^m+1, (i-1)*2^m+1, Mval, rho(p,q));
+          addinnerscalarmultiple(ans, (j-1)*2^m+1, (j-1)*2^m+1, Mval, phi(q,p));
+        fi;
+
+        Mval := MM[g(tableau, k) - 1];
+        addinnerscalarmultiple(ans, (i-1)*2^m+1, (i-1)*2^m+1, Mval, -phi(q,p));
+        j := corr[i];
+        if j <> i then
+          addinnerscalarmultiple(ans, (i-1)*2^m+1, (j-1)*2^m+1, Mval, rho(p,q));
+          addinnerscalarmultiple(ans, (j-1)*2^m+1, (i-1)*2^m+1, Mval, rho(p,q));
+          addinnerscalarmultiple(ans, (j-1)*2^m+1, (j-1)*2^m+1, Mval, -phi(p,q));
+        fi;
+        Print(i, " A + B\n");
+      else
+        Print("C case\n");
+        Mval := MM[g(tableau, k)];
+        addinnerscalarmultiple(ans, (i-1)*2^m+1, (i-1)*2^m+1, Mval, phi(p,q) - phi(q,p));
+        j := corr[i];
+        if j > i then
+          addinnerscalarmultiple(ans, (i-1)*2^m+1, (j-1)*2^m+1, Mval, rho(p,q) * Sqrt(2));
+          addinnerscalarmultiple(ans, (j-1)*2^m+1, (i-1)*2^m+1, Mval, rho(p,q) * Sqrt(2));
+          addinnerscalarmultiple(ans, (j-1)*2^m+1, (j-1)*2^m+1, Mval, phi(q,p) - phi(p,q));
+        fi;
+        Mval := MM[g(tableau, k)];
+        Print(i, " C\n");
+      fi;
+    od;
+
+    return ans;
+  end;
+
+  return List([1..n-1], transpositionmatrix);
+end;
+
+VerifyNazarov := function(ts)
+  local k, kk;
+  for k in [1..Size(ts)] do
+    if not IsIdentityMat(ts[k]^2) then
+      Print("Equation (4): t_", k, "^2 != 1");
+      return fail;
     fi;
   od;
-
+  for k in [1..Size(ts)] do
+    for kk in [k+2..Size(ts)] do
+      if ts[k]*ts[kk] <> -ts[kk]*ts[k] then
+        Print("Equation (5): t_", k, " does not anticommute with t_", kk, "\n");
+        return fail;
+      fi;
+    od;
+  od;
+  for k in [1..Size(ts)-1] do
+    if ts[k]*ts[k+1]*ts[k] <> -ts[k+1]*ts[k]*ts[k+1] then
+      Print("Equation (6): t_", k, " does not obey right relationship with t_", k+1, "\n");
+      return fail;
+    fi;
+  od;
+  return true;
 end;
