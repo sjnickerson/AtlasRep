@@ -223,7 +223,6 @@ NazarovMatrix := function(lambda, epsilon)
       j := corr[i];
       if j < i then continue; fi;
       tableau := tableaux[i];
-      PrintShiftedTableau(tableau);
       p := h(tableau, k);
       q := h(tableau, k+1);
       if h(tableau, k) * h(tableau, k+1) <> 0 then
