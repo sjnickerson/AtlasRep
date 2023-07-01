@@ -202,7 +202,6 @@ NazarovMatrix := function(lambda, epsilon)
 
   addinnerscalarmultiple := function(matrix, i, j, submatrix, scalar)
     local n, ii, jj;
-    Print("Adding ", scalar, " * ", submatrix, " at (", i, ", ", j, ")\n");
     n := Size(submatrix);
     for ii in [1..n] do;
       for jj in [1..n] do;
@@ -217,8 +216,6 @@ NazarovMatrix := function(lambda, epsilon)
   transpositionmatrix := function(k)
     local ans;
 
-    Print("*** COMPUTING TRANSPOSITION MATRIX t_", k, " ***\n");
-
     ans := NullMat(size, size);
 
     corr := correspondence(k);  
@@ -229,10 +226,7 @@ NazarovMatrix := function(lambda, epsilon)
       PrintShiftedTableau(tableau);
       p := h(tableau, k);
       q := h(tableau, k+1);
-      Print("p = ", p, "\n");
-      Print("q = ", q, "\n");
       if h(tableau, k) * h(tableau, k+1) <> 0 then
-        Print("A/B case\n");
         Mval := MM[g(tableau, k)];
         addinnerscalarmultiple(ans, (i-1)*2^m+1, (i-1)*2^m+1, Mval, phi(p,q));
         if j <> i then
@@ -249,9 +243,7 @@ NazarovMatrix := function(lambda, epsilon)
           addinnerscalarmultiple(ans, (j-1)*2^m+1, (i-1)*2^m+1, Mval, rho(p,q));
           addinnerscalarmultiple(ans, (j-1)*2^m+1, (j-1)*2^m+1, Mval, -phi(p,q));
         fi;
-        Print(i, " A + B\n");
       else
-        Print("C case\n");
         Mval := MM[g(tableau, k)];
         addinnerscalarmultiple(ans, (i-1)*2^m+1, (i-1)*2^m+1, Mval, phi(p,q) - phi(q,p));
         j := corr[i];
@@ -261,7 +253,6 @@ NazarovMatrix := function(lambda, epsilon)
           addinnerscalarmultiple(ans, (j-1)*2^m+1, (j-1)*2^m+1, Mval, phi(q,p) - phi(p,q));
         fi;
         Mval := MM[g(tableau, k)];
-        Print(i, " C\n");
       fi;
     od;
 
